@@ -416,8 +416,10 @@ holds data. It has rows (observations) and columns (variables).</p>
 <pre class="r"><code>setwd(&quot;C:/Home/Project - EquityAg/Github/equityag_materials&quot;)</code></pre>
 <p>Next, let’s create some folders to organize your files. A good file
 organization is essential for reproducibility and workflow.</p>
-<pre class="r"><code>dir.create(&quot;data&quot;)    # Store all raw and cleaned datasets
-dir.create(&quot;output&quot;)  # Save visualizations and reports here</code></pre>
+<pre class="r"><code>dir.create(&quot;data&quot;)    # Store all raw and cleaned datasets</code></pre>
+<pre><code>## Warning in dir.create(&quot;data&quot;): &#39;data&#39; already exists</code></pre>
+<pre class="r"><code>dir.create(&quot;output&quot;)  # Save visualizations and reports here</code></pre>
+<pre><code>## Warning in dir.create(&quot;output&quot;): &#39;output&#39; already exists</code></pre>
 <p><code>dir.create()</code> creates a new folder (directory). Useful
 for organizing your project (e.g., folders for data or outputs).</p>
 </div>

@@ -4,26 +4,99 @@ output: html_document
 date: "2025-07-14"
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+#copy and pasting is a bit tedious, there is another wat!
+#install and load dplyr
+#instructed that it is good practice to add this at the beginning of the file
+install.packages("dplyr")
+library(dplyr)
+library(arrow)
+library(ggplot2)
+install.packages("ggplot2")
+library(ggplot2)
 
-## R Markdown
+# load package
+library(arrow)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# load data
+merged_data <- read_parquet(file = "merged_data.parquet", stringAsFactors = True)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+#show the first 6 rows, first 10 columns
+head(merged_data[, 1:10], 6)
 
-```{r cars}
-summary(cars)
-```
+#show the last 6 rows, first 10 columns
+tail(merged_data[, 1:10], 6)
 
-## Including Plots
+#show structure and variable types, first 10 columns
+str(merged_data[, 1:10])
 
-You can also embed plots, for example:
+#always save a backup of your original data before cleaning
+merged_data <- read_parquet(file = "merged_data.parquet", stringsAsFactors = True)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+#try common data cleanign step to remove rows with missing values 
+#this might drop all rows
+#I ran the save backup first, but I should have run the cleaning and then ren the back up, then making the merged_data_omit data in the environment tab?
+#so this line used to be the line provided in the markdown file, and then I got help and changed this line
+merged_data_omit <- na.omit(merged_data)
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#this does not change the original data; it creates a new object with just AZ data.
+subset_data_az <- subset(merged_data, STATE_ABBR_2010SVI == "AZ")
+
+#now to summarize
+summary(subset_data_az[, 1:10],6)
+
+#calculate mean and SD for upward mobility
+upward_mean_2010_az <- mean(subset_data_az$upward_mobility_rate_2010)
+upward_sd_2010_az <- sd(subset_data_az$upward_mobility_rate_2010)
+upward_mean_2020_az <- mean(subset_data_az$upward_mobility_rate_2020)
+upward_sd_2020_az <-(subset_data_az$upward_mobility_rate_2020)
+
+#now we saved these values to the environment tab, now we should run a command to view them
+#i ran these commands one by one
+print(upward_mean_2010_az)
+upward_mean_2010_az
+print(upward_mean_2010_az <- mean(subset_data_az$upward_mobility_rate_2010))
+print(upward_mean_2010_az <- mean(subset_data_az$upward_mobility_rate_2010))
+print(upward_sd_2010_az <- sd(subset_data_az$upward_mobility_rate_2010))
+print(upward_mean_2020_az <- mean(subset_data_az$upward_mobility_rate_2020))
+print(upward_sd_2020_az <- sd(subset_data_az$upward_mobility_rate_2020))
+
+#do the same for california
+#i ran these coommands as they are grouped in the markdown page thing
+subset_data_ca <- subset(merged_data, STATE_ABBR_2010SVI == "CA")
+print(upward_mean_2010_ca <- mean(subset_data_ca$upward_mobility_rate_2010))
+print(upward_sd_2010_ca <- sd(subset_data_ca$upward_mobility_rate_2010))
+print(upward_mean_2020_ca <- mean(subset_data_ca$upward_mobility_rate_2020))
+print(upward_sd_2020_ca <- sd(subset_data_ca$upward_mobility_rate_2020))
+
+#calculating stats for smallr groups, like counties, like this;
+#first pima county
+print(pima_upward_mean_2010_az <- mean(subset_data_az$upward_mobility_rate_2010[subset_data_az$COUNTY_2010SVI == "Pima County"]))
+print(pima_upward_sd_2010_az <- sd(subset_data_az$upward_mobility_rate_2010[subset_data_az$COUNTY_2010SVI == "Pima County"]))
+
+#repeat for Del Norte County
+print(delnorte_upward_mean_2010_ca <- mean(subset_data_ca$upward_mobility_rate_2010[subset_data_ca$COUNTY_2010SVI == "Del Norte County"]))
+print(delnorte_upward_sd_2010_ca <- sd(subset_data_ca$upward_mobility_rate_2010[subset_data_ca$COUNTY_2010SVI == "Del Norte County"]))
+
+#summarize upward mobility by county in AZ
+summary_stats_upward_2010 <- subset_data_az %>%
+  group_by(COUNTY_2010SVI) %>%
+  summarize(mean_mobility_2010_az = mean(upward_mobility_rate_2010),
+            sd_mobility_2010_az = sd(upward_mobility_rate_2010))
+
+#view the result
+(head(summary_stats_upward_2010))
+
+#sketch by hand?? epic
+#now install ggplot2 adding to the beginning
+
+#lets creat a boxplot
+mobility_plot <- ggplot(data = summary_stats_upward_2010 , mapping = aes(x= COUNTY_2010SVI, y=mean_mobility_2010_az)) + geom_boxplot()
+print(mobility_plot)
+
+#what if we want to summarize every county in every state
+summary_stats_upward_2010_all <- merged_data %>%
+  group_by(STATE_ABBR_2010SVI, COUNTY_2010SVI) %>%
+  summarize(mean_mobility_2010 = mean(upward_mobility_rate_2010),
+      sd_mobility_2010 = sd(upward_mobility_rate_2010))
+
+#copy and pasted, still had an error
