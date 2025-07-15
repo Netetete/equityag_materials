@@ -161,7 +161,7 @@ ggsave(plot = sb_2020_box_plot, filename = "output/sb_2020_box_plot.pdf")
 
 
 #3 Filter challenge
-ca_above1 <- filter(subset_data_ca 
+ca_above1 <- filter(subset_data_ca > 1,)
 nrow()
 
 
