@@ -1,0 +1,769 @@
+---
+title: "Lesson 2: Git and GitHub in RStudio"
+author: "Jeffrey Michler"
+date: "2025-06-10"
+output: html_document
+---
+## Glossary of Git Terms
+
+When working on coding projects—especially in teams—it’s important to keep track of changes and collaborate effectively. That’s where tools like Git and GitHub come in.
+
+This glossary is designed to help you understand the key terms used when working with Git and GitHub, particularly in combination with RStudio. Whether you're managing your own project or collaborating with others, these definitions will give you a solid foundation in version control and help you navigate your workflow with more confidence.
+
+- `Git` is a version control system. It helps you track changes in your code and makes it easier to collaborate with others. Think of it like “track changes” in Microsoft Word, but specifically designed for code and projects.
+
+- `GitHub` is a website where you can store Git repositories online. It allows you to collaborate with others, share code, and manage projects. While Git runs on your computer, GitHub hosts your work in the cloud.
+
+- A `Repository` (Repo) is a folder that Git is tracking. It contains all your project files and a history of every change you've made. Repositories can live on your computer (local) or on GitHub (remote).
+
+- A `commit` is like taking a snapshot of your project at a certain point in time. It saves your changes with a short message describing what you did (like “Fix typo” or “Add plot to script”).
+
+- Before you commit, you **“stage”** changes — this means selecting which files or changes you want to include in your next commit. In RStudio, this is done by checking a box in the Git tab.
+
+- `Push` Pushing means sending your local commits (saved changes) to GitHub, so others can see your work or collaborate with you.
+
+- `Pull` Pulling gets the latest changes from GitHub to your computer. This is important to do before you start working, especially if others are also contributing to the same project.
+
+- `Clone` Cloning means making a copy of a GitHub repository on your local computer. You usually clone a repo when you're starting to work on a project that’s already on GitHub.
+
+- A `Branch` is a separate version of your project. You can use branches to try out new ideas or features without affecting the main project. Once the branch is ready, it can be merged back in.
+
+- `Merge` Merging combines changes from one branch into another. It’s most commonly used to bring your feature work into the main branch after it’s been tested.
+
+- A **merge conflict** happens when two people change the same part of a file in different ways. Git doesn’t know which change to keep, so it asks you to resolve the conflict manually.
+
+- A `README` is a text file (usually written in Markdown) that introduces and explains your project. It’s usually the first thing someone sees when they visit your GitHub repo.
+
+
+- The `.gitignore` file tells Git to ignore certain files or folders — for example, files that are too big or not relevant to the project (like temporary files or datasets over 100 MB).
+
+- A **Remote** is the version of your repository that lives on GitHub. Your computer holds the local copy. You sync changes between the two by pushing and pulling.
+
+- **Origin** is the default name Git gives to your remote GitHub repository. When you push or pull, you're usually doing it to/from “origin”.
+
+
+- **Main** is the name of the default branch in a repository. It used to be called "master" but was renamed to be more inclusive. It’s where the stable, finished version of your project usually lives.
+
+## Learning Objectives
+
+By the end of this lesson, you should be able to:
+
+1. Explain the differences between Git and GitHub  
+2. Track changes made to local copies of code using Git  
+3. Contribute code to a public repository on GitHub.  
+
+---
+
+### What Is Git? What Is GitHub?
+
+**Git** is a **version control system** — a tool that tracks changes in your code and helps you collaborate with others.
+
+- It works like "track changes" in Word, but for your code.
+- Git is installed and runs locally on your computer.
+
+**GitHub** is a **website** that hosts Git repositories.
+
+- It runs Git on its servers, so you can store your code in the cloud.
+- GitHub allows you to collaborate with others, track issues, manage pull requests, etc.
+
+In the rest of this lesson, the word **repository** (or **repo**) will refer to a project folder that Git is tracking.
+
+---
+
+## Part 1: Setting Up Git with RStudio
+
+### Step 1: Confirm Git Installation
+
+- Open RStudio.
+- Go to `Tools > Global Options`.
+- Click the **Git/SVN** tab.
+- Look for a valid Git executable path like `C:/Program Files/Git` (Windows) or `/usr/bin/git` (Mac).
+- If it says `(Not Found)`, install Git from [https://git-scm.com/downloads](https://git-scm.com/downloads).
+- After installing, **restart RStudio** and check again.
+
+### Step 2: Configure Git
+
+Once Git is installed, you need to “tell” Git who you are. You’ll do this by setting your name and email, this info gets attached to every change you make.
+
+You can do this in two ways: in RStudio or in your computer’s Terminal.
+
+```r
+# Go to Tools > Terminal > New Terminal
+# Then type:
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
+```
+
+That’s it! Git now knows who you are.
+
+
+#### **Mac Users Only: Common Error Fix** 
+
+If you're using a Mac, you might see an error like:
+
+
+```r
+xcrun: error: invalid active developer path
+```
+
+If that happens, it means Git is installed, but your system is missing some developer tools. 
+
+To fix this:
+
+1. Close RStudio
+2. Open your **Terminal** app (Not RStudio - use the system Termminal)
+3. Type this command:
+
+```r
+xcode-select --install
+```
+
+4. Follow the prompts to install the necessary tools
+5. Reopen RStudio and try again, more information: https://apple.stackexchange.com/questions/254380/why-am-i-getting-an-invalid-active-developer-path-when-attempting-to-use-git-a
+
+
+### Step 3: Sign Up for GitHub
+
+If you don’t have a GitHub account yet:
+
+1.	Go to https://github.com/
+2.	Click Sign up
+3.	Choose a username, email, and password
+4.	Confirm your email address
+5.	Now you have a GitHub account!
+
+<hr>
+
+#### **The Old Way: Why GitHub No Longer Uses Passwords**
+
+In the past, when you wanted to connect your computer to GitHub, you could just use your username and password. But passwords like "password123" aren’t safe.
+Now, GitHub uses more secure methods — and the one we’ll use is called a **Personal Access Token.**
+
+
+### Step 4: Use a personal Access Token (PAT)
+
+A Personal Access Token is like a strong password that GitHub generates for you.
+
+1.	Go to: https://github.com/settings/tokens
+
+2.	Click "Generate new token"
+
+3.	Choose "classic token" (if prompted).
+
+4.	Give it a name like "My RStudio token"
+
+5.	Set expiration to 90 days or longer
+
+6.	Select these scopes (permissions):
+
+- repo (full control of private repositories)
+- workflow
+- user
+- read:org
+
+7.	Click **Generate Token**
+
+8.	**Copy the token immediately!** You won’t see it again.
+
+
+You can find the instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-token
+
+---
+
+## Part 2: Starting Your First GitHub Project
+
+So far, you’ve set up Git, RStudio, and GitHub. Great!
+
+Now, it’s time to actually create a project and use GitHub to help you manage and share your work.
+
+<hr>
+
+Let's talk about options.
+
+When you want to connect your work to GitHub, you have 3 options:
+
+1. **Start a new repository on GitHub**
+(You’re starting a project from scratch — this is what we’ll do now.)
+
+2. **Use an existing repository on GitHub**
+(Someone already made the project on GitHub — you want to join or contribute.)
+
+3. **Use an existing local repository**
+(You already have a project on your computer and want to upload it to GitHub.)
+
+
+**For This Lesson: Start Fresh with Option 1.** 
+
+Let’s pretend you’re starting a brand-new project and want to collaborate or store your work safely on GitHub. The easiest way to begin is on **GitHub**.
+
+### Step-by-Step: Create a New Repository on GitHub
+
+A repository (or repo for short) is like a folder where your project lives on GitHub. It keeps all your code, notes, and history of changes.
+
+#### **Step 1: Log In to GitHub**
+1.	Go to https://github.com
+
+2.	Log in with your account.
+
+#### **Step 2: Create a New Repository**
+
+1.	Once logged in, look in the top-left or top-right for a button that says "New" or "New repository"
+- It’s usually a big green button
+
+2.	Click on it — now you're on the "Create a new repository" page.
+
+#### **Step 3: Fill Out the Repository Details**
+
+On the form:
+
+- Repository Name → type: **practice**
+- Description → type something like: Practicing GitHub and RStudio integration
+- Visibility → choose:
+  -Public (anyone can see it) — fine for learning
+  -Private (only you can see it) — also OK.
+
+Leave the other checkboxes (like "Add a README") unchecked for now unless your instructor says otherwise.
+
+#### **Step 4: Click “Create Repository”**
+
+You’ve created your first GitHub repository.
+This is your project’s new home base on the internet.
+
+--- 
+## Part 3: Use Your New GitHub Repo in RStudio
+
+Now that you’ve created a repository on GitHub, it's time to **start using it in RStudio**, this is where the real coding happens!
+Instead of just watching or typing notes in RStudio, we’ll actually create a real project connected to your GitHub repo.
+
+Let’s go!
+
+### Step-by-Step: Create a New RStudio Project from a GitHub Repo
+
+**What you’re doing:**
+
+You’re creating a new project on your computer (in RStudio) that is linked to your GitHub repository (on the internet). This lets you edit files, write code, and sync changes between the two.
+
+
+#### **Step 1: In RStudio, Create a New Project**
+
+1.	Open RStudio
+
+2.	Go to the menu bar and click: `File` > `New Project`.
+
+#### **Step 2: Choose “Version Control”**
+
+In the window that opens, choose: **Version Control** (This means we’re going to link to Git/GitHub).
+
+#### **Step 3: Choose “Git”**
+
+On the next screen, choose: **Git** (NOT Subversion).
+
+#### **Step 4: Paste the GitHub Repo URL**
+
+1.	Go back to your GitHub repo in the browser
+
+2.	Click the green **"Code"** button
+
+3.	Copy the URL you see there (it might look like this):
+
+```r
+https://github.com/your-username/practice.git
+```
+If you're using HTTPS, that's fine!
+
+4.	Now return to RStudio and paste that URL into the field called: **Repository URL**.
+
+#### **Step 5: Choose a Local Folder**
+
+Pick a place on your computer where you want to save the project files.
+
+This is your local copy — your working area!
+
+#### **Step 6: Click “Create Project”**
+RStudio will now create a new project folder and link it to your GitHub repo. You’ll now see:
+- A new RStudio session open
+- A Git tab in the top right (this means it's connected!)
+- Files from the GitHub repo, ready to work with.
+
+You are now using GitHub from inside RStudio! Amazing!
+
+### What you need to remember
+
+#### **A Quick but Important Warning About File Sizes**
+Now that you're all set up, there’s one big thing to keep in mind:
+
+**GitHub has a file size limit: 100 MB per file.**
+
+If you try to add or commit a file bigger than that, GitHub will reject it — and you’ll get an error.
+
+##### **How to Avoid Problems**
+
+Before you “stage” or commit any file (by checking the box in the Git tab), check if it’s too big.
+If a file is bigger than 100 MB:
+
+- Option 1: Add it to `.gitignore`
+
+Create a plain text file in your project called `.gitignore` and list any big files you don’t want Git to track.
+
+Example `.gitignore:`
+
+```r
+my-huge-dataset.csv
+temp_output/
+large_images/
+```
+
+- Option 2: Compress large files
+Zip them first, then commit the compressed version — just make sure it’s still under 100 MB.
+
+
+-Option 3: Use Git LFS (Large File Storage)
+
+This is a special tool for working with large files in Git.
+GitHub explains it here: https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github
+
+Important: If you want to use Git LFS, you need to set it up before you try to add the large file.
+
+<hr>
+
+## Part 4: Collaborate with Git + GitHub in RStudio
+
+Now that your local project (in RStudio) is linked to your remote repository (on GitHub), it’s time to learn how to keep everything in sync. This is how you collaborate — even if it’s just with your future self!
+
+**Think of it Like Two Versions of Your Project:**
+
+- Local repo = files on your computer (inside RStudio)
+- Remote repo = the version stored on GitHub.com
+
+You’ll move code back and forth between these two versions using Git.
+
+**The Collaboration Workflow**
+
+This is the most common GitHub workflow. Try to follow this order every time you sit down to code:
+
+**PULL → make changes → ADD → COMMIT → PUSH → repeat**
+
+### Let's Break Down Each Step
+
+#### **Step 1. PULL: Get the Latest Updates from GitHub**
+	
+- Always start your RStudio session with a Pull.
+- This checks if your teammates (or past-you) have made changes and updates your local files.
+
+In RStudio:
+
+- Go to the Git tab (top-right by default)
+- Click the blue down arrow ("Pull").
+
+If you skip this and someone else changed the files, you may get a "merge conflict" later!
+
+#### **Step 2. Make Changes**
+- You can edit scripts, add files, delete stuff — go wild!
+- Just remember to save your work before moving on.
+
+Saving your file is not enough for Git to track it!
+
+
+#### **Step 3. ADD: Stage the Files You Changed**
+
+- Tells Git: “I want to include these changes in the next save point.”
+
+In RStudio:
+
+- Go to the Git tab
+- Check the box in the Staged column next to the file(s) you changed. 
+
+This “stages” the changes for the next step.
+
+#### **Step 4. COMMIT: Record the Change to Your Local History**
+
+- Think of this like writing in your project’s change log.
+- Always include a commit message: clear and short, like:
+  -"Add summary plot to analysis script"
+  -"Fix typo in README".
+  
+In RStudio:
+
+-	Click the Commit button in the Git tab
+-	A window will pop up showing what you’ve changed
+-	Write a short message, then click Commit.
+
+Tip: You can commit multiple files at once!
+
+#### **Step 5. PUSH: Send Changes to GitHub**
+
+-This is how your edits go up to the GitHub website so others can see them.
+-Think of it as publishing your changes.
+
+In RStudio:
+
+-Click the green up arrow ("Push") in the Git tab.
+
+You’ll likely be asked for:
+
+- Your GitHub username
+- Your GitHub Personal Access Token (as your password).
+
+<hr>
+
+## Let's practice
+
+
+### Part 1: Writing and Saving Code in RStudio
+
+In this section, we’ll simulate a simple dataset using R. This is a great way to practice data manipulation, plotting, and understanding statistical relationships—especially before using real data.
+
+1. Open RStudio.
+
+2. Click: `File` > `New File` > `R Script`
+
+3. A blank script opens up. Paste in this simple sample code:
+
+```{r}
+# learning r and git
+# created by: Your Name
+# created on: [today's date]
+
+# Simulate a predictor variable 'x' using a normal distribution
+x <- rnorm(n = 100)  # generates 100 random values from a normal distribution (mean = 0, sd = 1)
+
+# Simulate a response variable 'y' with a linear relationship to 'x' plus some random noise
+y <- 2 * x + rnorm(n = 100, sd = 0.2) # y = 2x + small random noise
+
+# Plot the data to visualize the relationship
+plot(x = x, y = y)
+```
+
+Up to this point, we've created a simulated dataset where `y` is approximately twice the value of `x`, plus some added noise. The plot should show a clear linear relationship.
+
+4. Now save your script: `File` > Save As → name it `"simulate-practice-data.R"`.
+
+Make sure to save this file **inside a local folder that’s already a Git repository** (i.e., a folder that's already connected to Git, either newly created or cloned from GitHub). This allows Git to track any changes you make to the file.
+
+### Part 2: Connecting Your Code to Git and GitHub (Via RStudio)
+
+#### **Step 1: Use Git in RStudio**
+
+In RStudio, you should see a Git tab in the upper-right. If not:
+
+Go to `Tools` > `Global Options` > `Git/SVN`
+
+Make sure Git is enabled and your Git executable path is set.
+
+#### **Step 2: Version Control (Add > Commit > Push)**
+
+1. In the Git panel, you’ll see your file with a checkbox.
+
+2. Check the box. This adds the file to Git.
+
+3. Click Commit.
+
+4. In the pop-up window, write a message like initial commit, then click Commit.
+
+5. Click Push (upward arrow button). This sends your code to GitHub.
+
+6. You may be asked for your GitHub credentials. Use your personal access token, not your GitHub password.
+
+<hr>
+
+##### **Tip: Set Up Git Credentials** 
+
+To avoid repeated logins:
+
+1. In RStudio, run the following:
+
+```r
+install.packages("gitcreds")
+library(gitcreds)
+gitcreds_set()
+```
+
+`install.packages()`  installs the gitcreds package from CRAN (the Comprehensive R Archive Network).
+
+The gitcreds package helps manage Git credentials securely in R. It’s especially useful when working with Git repositories from RStudio or other R environments.
+
+`library()` loads the gitcreds package into your R session. You need to load the package to use its functions (like gitcreds_set()).
+
+`gitcreds_set()` launches an interactive prompt to set or update your Git credentials (usually a personal access token from GitHub, GitLab, etc.). Git operations (e.g., push, pull) from R or RStudio often need authentication. Instead of typing your credentials every time, `gitcreds_set()` securely stores them using your system’s credential manager.
+
+
+2. Select Option 2 when prompted and paste your **GitHub personal access token**.
+
+
+### Part 3: Using GitHub Desktop (An Easier Option)
+
+Some people find GitHub Desktop easier than using Git in RStudio. Here’s how:
+
+#### **Step-by-step with GitHub Desktop:**
+
+1. Open GitHub Desktop.
+
+2. Click the top-left where it says **Current Repository**.
+
+3. Click **Add > Clone Repository.**
+
+4. Choose the GitHub repository you created earlier.
+
+5.GitHub Desktop will **download (clone)** the repo to your computer.
+
+Now, move your R script into that folder. Make sure you're ***saving your** `.R` **file inside this cloned folder**.
+
+GitHub Desktop will now **detect the new file**, and you can:
+
+1. Add a commit message (e.g., added simulation code)
+
+2. Click Commit to main
+
+3. Click Push origin to send it to GitHub.
+
+
+
+<hr>
+
+Let's take the code from above and make a new code:
+
+#### **Step 1: Create a New R Script in RStudio**
+
+In RStudio, go to:
+
+
+`File` > `New File` > `R Script`
+
+This will open a new blank script. Think of it like a notebook where you’ll write and save your R code.
+
+#### **Step 2: Add your code + Preamble 
+
+Let’s write some basic R code and include a preamble. This is a simple documentation block at the top of your file. It's a good habit — it helps you (and your collaborators) understand who wrote the file, when, and why.
+
+
+```{r}
+# learning R and Git 
+# created by: 
+# created on: 
+# edited by:
+# edited on: 
+
+# simulate predictor variable
+x <- rnorm(n = 100)
+
+# simulate response variable with some noise 
+y <- 2 * x + rnorm(n = 100, sd = 0.2)
+
+# plot the data 
+plot(x = x, y = y)
+
+```
+
+
+#### **Step 3: Save your Script **
+
+Now save your script: `File` > Save As → name it `"simulate-practice-data.R"`.
+
+**Important**: Save it inside the folder connected to your GitHub repository. This folder was created when you cloned your repo using GitHub Desktop or `git clone`.
+
+
+#### **Step 4: See the File in GitHub Desktop**
+
+Open GitHub Desktop.
+
+1. If the GitHub repo is properly connected:
+
+    - You’ll see the file listed in the Changes tab.
+
+    - A checkmark will appear next to it — that means it’s being tracked.
+
+    - You can now type a commit message (e.g., “Add simulated data script”) and click Commit to main.
+
+    - Finally, click Push origin to upload your changes to GitHub.
+
+Your code is now live on GitHub!
+
+#####  **Connection alternatives**
+
+Sometimes you may want to connect to GitHub in different ways. Here are your options:
+
+
+2. Use an Existing GitHub Repository:
+
+Maybe someone shared a repo with you, or you made one earlier.
+
+To get the code:
+
+    1. Go to the GitHub repo page in your browser.
+
+    2. Click the green "Code" button.
+
+    3. Copy the repository URL.
+
+    4. Open GitHub Desktop → Click "`Add` > `Clone repository`".
+
+    5. Paste the URL, choose where to save it locally, and click Clone.
+
+Now that it's on your machine, open that folder in RStudio and add your scripts!
+
+
+3. Push an Existing Local Project to GitHub via the Command Line
+
+Let’s say you’ve already written some R code on your computer, and now you want to put it on GitHub.
+
+Here’s how to do it:
+
+    1. On the GitHub website, create a new repo (but don’t initialize it with a README or license).
+
+    2.In RStudio, open the Terminal via: `Tools` > `Terminal` > `New Terminal`
+    
+```r
+echo "# simulate-data" >> README.md       # create a README file
+git init                                  # initialize Git in your folder
+git add README.md                         # stage your file
+git commit -m "first commit"              # make your first commit
+git remote add origin YOURURL             # connect to GitHub (replace YOURURL!)
+git push -u origin main                   # push code to GitHub
+```  
+
+**Important**: Replace `YOURURL` with the URL of your GitHub repo.
+
+Finally, shut down and restart RStudio to make sure Git is fully integrated.
+
+
+<hr>
+
+## Review: Lesson 2 Learning Objectives
+
+By now, you should be able to:
+
+1. Explain the difference between Git (version control) and GitHub (online sharing/collaboration platform).
+
+2. Track code changes in local R scripts using Git.
+
+3. Push your work to GitHub, where it can be seen and shared publicly.
+
+## Student activity
+
+### Objective
+
+Work with a partner to simulate a dataset, write code collaboratively, and manage your changes using Git and GitHub. Each person will take turns contributing code, committing changes, and pushing/pulling from the shared repository.
+
+### Overview of the exercise:
+
+You will:
+
+1. Set up a shared GitHub repo
+
+2.Clone it locally using RStudio or GitHub Desktop
+
+3. Collaborate by taking turns editing a script
+
+4. Use **Git (pull → edit → add → commit → push)** to track each person’s contributions.
+
+### Instructions (do this together)
+
+1. One person **(Person A)** creates a GitHub repo called: pair-simulation-practice
+
+2. Add the other person **(Person B)** as a collaborator:
+  - Go to the repo on GitHub → Settings → Collaborators
+  - Type in their GitHub username and send an invite
+  - Person B accepts the invite via email or GitHub.
+  
+3. Both partners clone the repo locally using:
+  - RStudio (File > New Project > Version Control)
+  - or GitHub Desktop
+
+### Division of work
+
+**Take Turns Working on the Same Script:**
+
+The script will be called: `simulate_pair_data.R`
+
+You'll take turns adding sections of the code. Here’s the workflow:
+
+#### **Person A**
+
+1.	Create a new R script called simulate_pair_data.R
+2.	Add this code and a preamble:
+
+```{r}
+# simulate_pair_data.R
+# A collaborative exercise in Git + R
+# Created by: [Person A]
+# Last updated by: 
+# Date created: 
+# Last updated on: 
+
+# Simulate predictor
+x <- rnorm(100)
+```
+
+3.	Save the script
+4.	Use Git to:
+  - Stage (git add)
+  - Commit ("Add x simulation")
+  - Push to GitHub
+
+#### **Person B**
+
+1.	Pull the latest changes (git pull or blue down arrow)
+2.	Open simulate_pair_data.R and add:
+
+```r
+# Simulate response variable y
+y <- 2 * x + rnorm(100, sd = 0.3)
+```
+
+3.	Update the “Last updated by” and “Last updated on” in the preamble
+4.	Save, commit ("Add y simulation"), and push
+
+### **Person A**
+1.	Pull latest version
+2.	Add:
+
+```{r}
+# Create scatterplot
+plot(x, y, main = "x vs y: Simulated Linear Data")
+
+```
+
+3.	Commit with message: "Add plot of x vs y"
+4.	Push
+
+#### **Person B**
+1.	Pull latest version
+2.	Add a regression line and change the plot title
+
+```{r}
+plot(x, y)
+abline(lm(y ~ x), col = "red", lwd = 2)
+title("Final Plot with Regression Line")
+```
+
+3.	Commit ("Add regression line to plot")
+4.	Push
+
+#### **Final Check**
+Both partners should see the final file on GitHub with everyone’s contributions listed in the commit history.
+You can check:
+
+- Commit messages show who did what
+- The final script runs and plots correctly
+- Collaboration was successful using pull → add → commit → push
+
+#### **Reflection (Discuss)**
+1.	What was smooth about the collaboration?
+2.	What Git/GitHub issues did you run into?
+3.	What would you do differently next time when working in a pair?
+
+#### **Bonus Challenge**
+
+Try causing and resolving a merge conflict (advanced but useful):
+- Both partners edit the same line of code in different ways before pulling
+- Git will stop you and ask for manual resolution
+- Talk through how to resolve the conflict together
+
+
+## Reflect and Extend
+
+Take a moment to think beyond the instructions.
+
+a. What question would *you* design based on this lesson?
+
+b. What questions do you still have?  

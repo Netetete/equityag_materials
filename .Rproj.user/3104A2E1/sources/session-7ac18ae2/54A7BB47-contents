@@ -1,0 +1,1042 @@
+---
+title: "Lesson 3: Workflow and Statistical Test in R"
+author: "Anna Josephson"
+date: "2025-06-05"
+output: html_document
+---
+
+# Learning Objectives
+
+1. Streamline workflow using R Projects and Git
+2. Read and write data using files
+3. Gain comfort with `tidyverse`
+4. Run standard statistical tests:
+   - Student’s t
+   - ANOVA
+   - Simple linear regression
+5. Gain literacy with piping (`%>%`) and tidy tools.
+
+---
+
+R was designed for statistical analyses.  
+This lesson provides an overview of reading data, writing output, and running standard statistical tests in R.  
+These include:
+
+- t-tests  
+- linear regression  
+- analysis of variance.
+
+
+## 1. Streamline Workflow
+
+To help streamline our workflow, we are going to:
+
+1. Use an `.Rproj`
+2. Create directories within the project
+3. Update our `.gitignore` file to ignore data
+4. Place the data into the R project.
+
+### Step-by-step instructions:
+
+1. Open RStudio and use the RStudio dropdown menu to create a new R Project in your existing git folder
+
+2. Use the code below to create subfolders in the R project to hold `data` and `output`:
+
+```{r create-folders, eval=FALSE}
+dir.create(path = "data")
+dir.create(path = "output")
+```
+
+`dir.create()` creates a new folder (directory). Useful for organizing your project (e.g., folders for data or outputs).
+
+These folders will help keep raw data separate from results.
+
+3. Open your `.gitignore` file in RStudio:
+
+- Navigate via the Files pane, or use the dropdown menu (`File > Open File...`).
+- Add the following line to ignore parquet files (under the section `# Session Data Files`):
+
+```
+*.parquet
+```
+
+Save the file. This prevents Git from tracking large raw data files.
+
+4. Copy the data file (`merged_data.parquet`) into the `data/` folder.
+
+Then, verify that Git is ignoring it:
+- Open **GitHub Desktop**.
+- You should **not** see the `.parquet` file listed in the changes.
+
+---
+
+## 2. Read and write data using files
+
+Use the code Anna shared in Lesson 1 to create subfolders in the Rproj to hold data and output.
+
+Now let’s begin working with the data in a new R script.
+
+Start a New Script:
+
+1. In RStudio, go to `File > New File > R Script`
+2. Save it as `mobility-tests.R` **within your Git project folder**.
+
+We always begin with package loading:
+
+```{r load-packages}
+library(arrow)      # for reading parquet files
+library(tidyverse)  # for data manipulation and visualization
+```
+
+- `arrow`
+A package that allows R to read and write data in Parquet format, which is a fast and compact way to store data.
+
+- `tidyverse`
+A collection of packages (including dplyr, ggplot2, readr, and more) that work together and follow the same design philosophy for working with data.
+
+
+Load the Dataset:
+
+Read in the data using the `arrow` package:
+
+```{r read-data}
+merged_data <- read_parquet(file = "merged_data.parquet", stringsAsFactors = TRUE)
+```
+
+The function `read_parquet()` takes at least two arguments:
+
+1. The file path to the dataset
+
+2. How to handle text strings (`stringsAsFactors = TRUE` means treat text as categorical data)
+
+The data from the file is now stored in an object called `merged_data`.
+
+---
+
+Initial Exploration with Visualization:
+
+A simple yet powerful way to begin understanding data is to **visualize** it. Let's start with a boxplot of upward mobility by state:
+
+```{r initial-boxplot}
+boxplot(formula = upward_mobility_rate_2010 ~ STATE_NAME_2010SVI, data = merged_data)
+```
+
+Identify and Handle Anomalies:
+
+While exploring data, we might notice anomalies. For instance, a state named `06` might appear — this likely isn't a valid state name.
+
+Let’s remove such entries:
+
+```{r remove-anomalies}
+merged_data <- merged_data[!(merged_data$STATE_NAME_2010SVI %in% "06"), ]
+```
+
+Re-plot the boxplot to confirm the issue is resolved:
+
+```{r replot-clean}
+boxplot(formula = upward_mobility_rate_2010 ~ STATE_NAME_2010SVI, data = merged_data)
+```
+
+
+Let’s create another boxplot to explore total population by state:
+
+```{r plot pop}
+boxplot(formula = M_TOTPOP_2010SVI ~ STATE_NAME_2010SVI, data = merged_data)
+```
+
+Take a moment: What does this new plot tell you? Why did you choose this variable to explore next? Are there patterns worth investigating further?
+
+Now tips on Boxplots
+
+- Boxplot uses the formula syntax: `y ~ group`
+- The left of the `~` is plotted on the y-axis
+- The right is the grouping variable on the x-axis.
+
+If you're curious, type `?boxplot` in the Console for more information.
+
+---
+
+## 3. Introduction to tidyverse and Advanced Data Handling
+
+### 3.1 Case Sensitivity in R
+
+R is **case-sensitive**, which means that `State`, `STATE`, and `state` are treated as different objects. If you refer to an object with the wrong case, R will throw an error. For example:
+
+```{r case-sensitive-error, eval=FALSE}
+boxplot(formula = M_TOTPOP_2010SVI ~ state_NAME_2010SVI, data = merged_data)
+```
+
+This won't run because `state_NAME_2010SVI` doesn't exist (the correct variable is `STATE_NAME_2010SVI`).
+
+> **Tip**: Decide with your team or advisor on a consistent naming style (e.g., all lower case) to avoid such issues.
+
+### 3.2 Installing and Loading tidyverse
+
+The `tidyverse` is a powerful collection of R packages that simplify data manipulation and visualization. To install it:
+
+```{r install-tidyverse, eval=FALSE}
+install.packages("tidyverse")
+```
+
+Then, load it in your script:
+
+```{r load-tidyverse}
+library(tidyverse)
+```
+
+### 3.3 Using tidyverse for Summarizing Data
+
+Let’s calculate the mean upward mobility for California and Arizona.
+
+#### **Traditional (Base R) Method**:
+
+```{r base-method}
+
+#1. First, create two new datasets by filtering the rows based on the state abbreviation.
+
+subset_data_ca <- subset(merged_data, STATE_ABBR_2010SVI == "CA")
+subset_data_az <- subset(merged_data, STATE_ABBR_2010SVI == "AZ")
+
+
+#2.Calculate the average upward mobility rate in 2010 for each state using the mean() function.
+
+print(upward_mean_2010_ca <- mean(subset_data_ca$upward_mobility_rate_2010))
+print(upward_mean_2010_az <- mean(subset_data_az$upward_mobility_rate_2010))
+
+#3. Once we have both means, we store them in a new data frame so they’re easier to use later.
+upward_mobility_means_2010 <- data.frame(State = c("CA", "AZ"),
+                         up_2010_mean = c(upward_mean_2010_ca, upward_mean_2010_az))
+
+# This process works, but it’s long and repetitive. Imagine doing this for all 50 states!
+# Let’s use tidyverse to make this more efficient.
+
+```
+
+The `subset()` function is part of base R, meaning you don't need any additional packages to use it. Its main purpose is to extract a portion of a data frame based on a logical condition.
+
+The `mean ()` (or average) is a measure of central tendency, it gives us a single value that summarizes the center point of a dataset. 
+
+The `data.frame()` is used to create a new data frame by combining vectors (columns) of data.
+
+#### **Tidyverse Method (Concise and Scalable)**:
+
+We use the pipe symbol (%>%) to send our dataset (`merged_data`) through a sequence of commands.
+
+
+```{r tidyverse-group}
+
+# Group the full dataset by state abbreviation, then calculate the mean upward mobility rate for each group.
+
+state_group <- merged_data %>%
+  group_by(STATE_ABBR_2010SVI)
+
+state_mob_means <- state_group %>%
+  summarise(up_mean = mean(upward_mobility_rate_2010, na.rm = TRUE))
+
+# Often, there are missing values (NA) that we don't want in our results.
+# Let’s remove any rows where the state abbreviation is missing.
+
+state_mob_means <- state_mob_means %>%
+  filter(!is.na(STATE_ABBR_2010SVI))
+
+#This is much faster and cleaner than calculating each state manually. Now state_mob_means is the same as upward_mobility_means_2010
+
+```
+
+`group_by()` splits your data into groups (like by state or county).
+
+`summarize()` then applies functions like mean() or sd() to each group.
+
+
+
+So let's talk about what is a pipe operator.
+
+### 3.4 The Pipe Operator `%>%`
+
+The pipe operator `%>%` sends the result from the left-hand side to the first argument of the function on the right-hand side. It makes the code more readable and helps us chain multiple commands together.
+
+Meaning:  so this means that `state %>% group_by(STATE_ABBR_2010SVI)` is the same as `group_by(state, STATE_ABBR_2010SVI)`.
+
+The example below does three things:
+
+1. Starts with the full dataset (merged_data)
+2. Groups it by state
+3. Calculates the mean upward mobility rate.
+
+
+
+```{r pipe-example}
+upward <- merged_data %>%
+  group_by(STATE_ABBR_2010SVI) %>%
+  summarise(means_2010 = mean(upward_mobility_rate_2010, na.rm = TRUE))
+```
+
+4. Removes rows where the state is NA.
+
+```{r pipe-example-4}
+upward <- upward %>% filter(!is.na(STATE_ABBR_2010SVI))
+```
+
+Let's review what we did:
+
+- First, we group the data by state (identified by `STATE_ABBR_2010SVI`)
+
+- Then, we calculate the average upward mobility rate for each state using the `mean()` function
+
+- The final result is saved into a new variable called `upward`.
+
+
+### 3.5 Adding Error Bars with ggplot2
+
+Let’s visualize means and standard error (SE):
+
+```{r stats-by-county}
+upward_stats <- merged_data %>%
+  group_by(STATE_ABBR_2010SVI, COUNTY_2010SVI) %>%
+  summarise(up_means = mean(upward_mobility_rate_2010, na.rm = TRUE),
+            up_se = sd(upward_mobility_rate_2010, na.rm = TRUE)/sqrt(n()))
+```
+
+
+Here, we are grouping by both state and county.
+
+We calculate:
+
+- The mean of upward mobility
+
+- The standard error (SE), which tells us how spread out the data is. It’s calculated by taking the standard deviation divided by the square root of the sample size
+
+- This gives us a more precise picture of variation across counties within each state.
+
+
+Remember to drop the NA.
+
+```{r stats-by-county-NA}
+upward_stats <- upward_stats %>% filter(!is.na(STATE_ABBR_2010SVI))
+```
+
+
+
+#### Basic ggplot with Error Bars
+
+ Remember that data visualization helps us **tell a story**. Let’s plot the mean upward mobility per state using ggplot2.
+ 
+`ggplot()` starts a plot.
+
+`aes()`defines the axes and variables to plot. 
+
+```{r plot-error-bars}
+ggplot(data = upward_stats, mapping = aes(x = STATE_ABBR_2010SVI, y = up_means))
+```
+
+But, this gives us a blank plot — we haven't told R what kind of plot to make. Do we want a bar chart? A scatterplot? Maybe a heatmap?
+
+We are using means as points, so we use `geom_point()`. And to add component to our plot we use the sign **+**.
+
+```{r plot-error-bars-2}
+ggplot(data = upward_stats, mapping = aes(x = STATE_ABBR_2010SVI, y = up_means)) +
+  geom_point()
+```
+
+Let's add error bars using `geom_errorbar()`.
+
+```{r plot-error-bars-3}
+ggplot(data = upward_stats, mapping = aes(x = STATE_ABBR_2010SVI, y = up_means)) +
+  geom_point() + 
+  geom_errorbar(mapping = aes(ymin = up_means - up_se,
+                              ymax = up_means + up_se))
+
+```
+
+Tweak the error bars for visibility (make them thinner).
+
+```{r plot-error-bars-4}
+ggplot(data = upward_stats, mapping = aes(x = STATE_ABBR_2010SVI, y = up_means)) +
+  geom_point() + 
+  geom_errorbar(mapping = aes(ymin = up_means - up_se,
+                              ymax = up_means + up_se), 
+                width = 0.30)
+
+
+```
+
+So, 
+
+- We use `ggplot2` to create plots
+
+- `geom_point()` adds dots for the mean upward mobility rates
+
+- `geom_errorbar()` shows how much variability there is around each mean using the SE
+
+- We include `width = 0.30` to make the error bars visually cleaner.
+
+> **Reflection**: Why does this graph look busy? How can we make it more readable?
+
+Because we are plotting many counties, grouped by state, it can get crowded or hard to interpret.
+
+To simplify, we can just summarize at the state level again and replot.
+
+#### Cleaned Up by State
+
+```{r cleaned-error-bars}
+upward_stats_st <- merged_data %>%
+  group_by(STATE_ABBR_2010SVI) %>%
+  summarize(up_means = mean(upward_mobility_rate_2010),
+            up_se = sd(upward_mobility_rate_2010)/sqrt(n()))
+
+```
+
+Remember to drop the NA.
+
+```{r cleaned-error-bars-1}
+upward_stats_st <- upward_stats_st %>% filter(!is.na(STATE_ABBR_2010SVI))
+
+```
+
+Redo the graph.
+
+```{r cleaned-error-bars graph}
+ggplot(data = upward_stats_st, mapping = aes(x = STATE_ABBR_2010SVI, y = up_means)) +
+  geom_point() + 
+  geom_errorbar(mapping = aes(ymin = up_means - up_se,
+                              ymax = up_means + up_se), 
+                width = 0.30)
+```
+
+This gives us a much cleaner and easier-to-read visualization.
+
+#### Data and Storytelling
+
+All data originates from human decisions, even if it's collected automatically (like from sensors or machines). Reflect on:
+
+- What to measure
+- When to measure it
+- How to structure it.
+
+When working with data, ask yourself:
+
+- Who generated this data?
+- What was their purpose?
+- What limitations or biases might exist?
+- Has the data been reused in different ways?
+
+
+> **Critical Thinking**: Are we reusing them responsibly?
+
+This is important for being a responsible data analyst.
+
+### 3.6 More tidyverse Tricks
+
+It’s a good habit to create a working copy of your dataset. This way, the original stays untouched and you can experiment safely.
+
+```{r n-data}
+merged <- merged_data
+```
+
+Now `merged` is your editable copy, while `merged_data` remains preserved in its original form.
+
+Before diving into statistical tests, let’s quickly explore 10 awesome things you can do easily using the tidyverse in R. You don’t need to master them all right now — but we’ll talk through what each one does and why it's helpful.
+
+#### **Selecting columns**
+
+`select()` removes columns with underscores and keeps those that start with “upward”— like upward mobility data.
+
+```{r select}
+merged %>% 
+  dplyr:: select(!contains("_"), starts_with ("upward"))
+```
+
+#### **Reordering columns**
+
+`relocate()` puts all columns containing "STATE" after the 2020 upward mobility rate column.
+
+```{r reorder}
+merged <- merged %>%
+  dplyr:: relocate(contains("STATE"), .after = upward_mobility_rate_2020)
+```
+
+#### **Create and Place a Unique Identifier**
+
+Now you’ve got a tidy unique ID column in a clean spot.
+
+```{r unique-id}
+unique_id <- merged %>%
+  dplyr:: group_by(STATE_FIPS_2010SVI, COUNTY_2010SVI, CENSUSAREA_2010SVI) %>%
+  dplyr:: mutate(uniqueid = row_number(), .before = contains("_"))
+
+```
+
+#### **Pivoting (Wide ↔ Long)**
+
+Tidyverse makes switching between wide and long formats easy. Here’s the general syntax — though it doesn’t quite apply to our data right now:
+
+```{r across-stats}
+#Wide to long
+# merged_long <- unique_id %>%
+  #tidyr::pivot_longer(contains("_"),
+                      #names_to = c("upward"),
+                      #names_sep =("_"))
+
+
+#this is general synthax, but doesn't make sense for what we're doing right now
+
+# Long to wide
+
+# merged_wide <- _merged_long %>%
+   #tidyr::pivot_wider(names_from = c("upward),
+                      #values_from = "value",
+                      #names_sep = "_")
+
+
+#again, as we didn't change, muted code
+```
+
+#### **Summarize Across Multiple Columns**
+
+Compute summary stats across multiple columns:
+
+```{r across-names}
+merged_stats_up <- merged %>% 
+  dplyr::group_by(STATE_ABBR_2010SVI) %>% 
+  dplyr::summarize(across(starts_with("upward"),
+                          list(~mean(.x, na.rm = TRUE), 
+                               ~sd(.x, na.rm = TRUE)))) 
+
+```
+
+
+#### **Rename Columns When Summarizing**
+
+Get clearer names for your summary columns. 
+
+```{r rename.}
+merged_stats_up <- merged %>% 
+  dplyr::group_by(STATE_ABBR_2010SVI) %>% 
+  dplyr::summarize(across(starts_with("upward"), 
+                          list(mean = ~mean(.x, na.rm = TRUE), 
+                               sd = ~sd(.x, na.rm = TRUE)),
+                          .names = "{gsub('_', '', col)}_{fn}")) 
+```
+
+### 3.7 Advanced: Modeling and Nesting
+
+You can even run models within groups:
+
+```{r group-models, eval=FALSE}
+upward_models <- merged %>%
+  group_by(STATE_ABBR_2010SVI) %>% summarise(model list(lm(upward_mobility_rate_2010 ~ POP2010)))
+```
+
+We’ll return to this when we cover regression.
+
+And `nest()` your data:
+
+Turn grouped data into list-columns.
+
+```{r nest-data, eval=FALSE}
+merged <- nest_by(state_group)
+```
+
+#### **Plotting Across Subsets**
+
+Tidyverse makes graphing across groups intuitive. We’ll only touch on it today, but check out a ggplot2 workshop if you're interested!
+
+---
+
+## 4. Running a Basic Statistical Test: Student's t-test
+
+
+We've made quite a few changes to `merged_data`, so let's reset and start fresh.
+
+```{r dataa}
+merged <- merged_data 
+```
+
+This part is all about starting some basic statistical tests and  not just the *how* but also the *why* behind each one. But before we dive in too far: if you haven’t taken a statistics class before, I *highly* recommend it!. It’ll make a lot of this feel more intuitive.
+
+
+### Statistical Testing: T-Test
+
+What is a t-test?
+A t-test helps us compare two groups to see if their averages are statistically different.
+
+For example, is the average upward mobility rate in one state significantly different from another?
+
+We use it when we want to know:
+
+"Are these two groups different enough that it’s unlikely this happened by chance?"
+
+We’ll start simple — with a Student’s t-test. Let’s compare upward mobility between Arizona and California.
+
+```{r ttest0}
+az <- merged_data[merged_data$STATE_NAME_2010SVI == "Arizona", ]
+ca <- merged_data[merged_data$STATE_NAME_2010SVI == "California", ]
+```
+
+(Quick story: I once forgot about capitalization and wrote STATE instead of STATE_NAME_2010SVI... it didn’t work and gave me an empty dataset. Always check your column names!).
+
+Okay—what happened here? Let’s break it down:
+
+1. Merged_data is a data.frame (you can think of this like a big spreadsheet).
+2. `merged_data$STATE_NAME_2010SVI` is a single column from that spreadsheet.
+3. **[]** is R’s way of subsetting: it grabs rows and columns.
+
+
+```{r dim}
+#we can see how many rows and columns are in a data.frame with the dim() command
+
+dim(merged_data)
+
+#this returns all columns for the third row in merged_data:
+
+merged_data[3,]
+
+#or the third column:
+
+merged_data[,3]
+
+```
+
+4. We’re saying “give me the rows where the state is Arizona (or California), and keep all columns”.
+
+Let's check how many observations we got in each:
+
+
+```{r ttest}
+print(nrow(az))  
+print(nrow(ca))  
+```
+
+Why AZ has fewer rows:
+
+California has more counties — hence, more observations.
+
+Now we want to test: is the upward mobility rate in these two states significantly different?
+
+
+```{r ttest1}
+t.test(x = az$upward_mobility_rate_2010, y = ca$upward_mobility_rate_2010)
+```
+
+`t.test()` performs a t-test, a statistical test used to compare the means of two groups. It tells you whether the difference between the two averages (means) is statistically significant.
+
+This code is running a two-sample (independent) t-test to compare the mean upward_mobility_rate_2010 between Arizona and California.
+
+
+What you'll get in the output:
+
+- **t-statistic**: A number that tells how far apart the group means are, relative to the variability in the data
+
+- **df (degrees of freedom)**: Related to the sample size
+
+- **p-value**: The key number for interpreting the test—if it's below your threshold (commonly 0.05), the result is statistically significant
+
+- **Confidence interval**: The estimated range in which the true difference in means likely falls
+
+- **Means of x and y**: The average upward mobility in AZ and CA.
+
+
+
+#### **Hypotheses in Stats**
+
+- **Null hypothesis (H₀)**: No effect/difference
+
+- **Alternative hypothesis (H₁)**: There is a difference/effect.
+
+Science often emphasizes the null — and you reject it only if evidence is strong.
+
+
+What this test is doing:
+
+- **Null hypothesis (H₀)**: There is no difference in the mean upward mobility between AZ and CA in 2010
+
+- **Alternative hypothesis (H₁)**: There is a difference in the means.
+
+So what do we find?
+If the p-value is large → we can’t reject the null hypothesis. 
+
+Conclusion: We likely fail to reject the null hypothesis — meaning there's no strong evidence that mobility differs between AZ and CA in 2010.
+
+
+#### **Example Interpretation** (if the output looks like this)
+
+```{r ttest2}
+#t = -4.92, df = 1700, p-value = 9.2e-07
+#95 percent confidence interval: -0.035 to -0.015
+#mean of x: 0.120
+#mean of y: 0.145
+```
+
+The p-value `(< 0.001)` suggests a **significant difference** between the states.
+
+The mean upward mobility rate is **higher in California** than in Arizona.
+
+The 95% confidence interval does **not contain 0**, further supporting a statistically significant difference.
+
+
+#### **Assumptions to be aware of** 
+
+- The two groups are independent
+
+- The data are approximately normally distributed (especially important for small sample sizes).
+
+### ANOVA: Multiple Group Comparisons
+
+Let’s take things up a notch:
+ 
+Instead of comparing just two states, what if we want to know: Are there differences in mobility **among all counties** in Arizona?
+
+To do that, we use ANOVA (analysis of variance) because it lets us compare **multiple groups** at once.
+
+We’ll use the `aov()` function for this. It tests whether the means of two or more groups are significantly different from each other.
+
+It’s commonly used when you want to compare more than two groups, although it also works with just two.
+
+
+```{r aov0}
+aov(formula = upward_mobility_rate_2010 ~ COUNTY_2010SVI, data = az)
+```
+
+This syntax is classic in R: response ~ predictor (y~x).Where the response variables (e.g. y) are to the left of the tilde (~) and the predictor variables (e.g. x) are to the right of the tilde.
+
+
+
+```{r aov1}
+mobility_rate_az_aov <- aov(formula = upward_mobility_rate_2010 ~ COUNTY_2010SVI, data = az)
+```
+
+
+Here’s what this means:
+
+- We're comparing mobility rate between counties
+
+- ~ means “explained by”
+
+- So this says: “mobility rate is explained by county”.
+
+So here: is mobility rate explained by the county you’re in?
+
+We saved the model into `mobility_rate_az_aov`.
+Let’s look at it:
+
+```{r aov2}
+summary(object = mobility_rate_az_aov)
+```
+
+Key things in the output:
+
+- **df**	Degrees of freedom (how many groups)
+
+- **`Sum Sq`** (sum of squares) / **`Mean Sq`** (mean squares)	Measures of variation (how spread out the data is). It is used to calculated our test statistic here: `F- value`
+
+- **`F value`**	The test statistic (like the “t” in a t-test, higher = more evidence against null). Calculated as the ratio of the between-group variance to the within-group variance
+
+- **`Pr(>F)`**	This is the p-value — again, if it’s small, the differences between counties are real.
+
+So how do we interpret this?
+
+if `Pr(>F)` is very small (like < 0.05), it means at least one county is significantly different in terms of mobility.
+
+In our case: P < 2e-16 — which is basically zero. 
+
+This is a **BIG finding**: counties in AZ have significantly different mobility rates.
+
+Do you want to save this output to a file?
+
+Use sink!
+
+```{r aov3}
+sink(file = "output/az_mobility_anova.txt")
+summary(object = mobility_rate_az_aov)
+sink()
+```
+
+
+### Linear Regression 
+
+Regression tells us:
+
+"If one number goes up, does another number also go up (or down)?"
+
+It answers:
+
+- "Is there a pattern?"
+
+- "How strong is that pattern?"
+
+- "Can we use it to predict things?"
+
+Let’s take a quick look at our data:
+
+```{r regre}
+summary(merged_data[, 1:10], 6) 
+```
+
+Okay that’s... a lot. So let’s visualize instead.
+
+What do we want to know? Mmm for example: is there a relationship between population and mobility?
+
+```{r regre1}
+plot(x = merged_data$upward_mobility_rate_2010, y = merged_data$M_TOTPOP_2010SVI)
+```
+
+This helps you see the pattern between population and mobility.
+
+This doesn’t look like a straight-line relationship, and we like straight-line (linear) relationships because they’re easier to work with.
+
+To fix this, we’ll apply something called a log transformation to the population data.
+
+That just means we’ll create a new column where we take the log of the population values.
+
+Why do we do this?
+
+- It helps fix data that’s really skewed or stretched out.
+
+- It squishes really big numbers down, making the data easier to compare.
+
+- When we look at charts like histograms, it can make the shape more balanced.
+
+- This makes the data behave more "normally," which helps us do better and more accurate analysis.
+
+Then we’ll make a new plot using the log-transformed data and see if the relationship looks more like a straight line.
+
+
+```{r regre2}
+merged$logpop <- log10(merged$M_TOTPOP_2010SVI)
+```
+
+And plot again:
+
+```{r regre3}
+plot(x = merged$upward_mobility_rate_2010, 
+     y = merged$logpop, 
+     xlab = "Upward Mobility", 
+     ylab = "log10(Population)")
+
+```
+
+We added two extra settings to the `plot` command called **xlab** and **ylab**.
+
+These are just used to label the x-axis and y-axis in the chart so it’s easier to understand what the graph is showing.
+
+You can also try making the plot without these labels to see what it looks like—it still works, but the axes won’t be clearly labeled.
+
+---
+
+Now we’re going to run something called a regression.
+
+A regression is a way to look at the relationship between two variables in your data.
+
+It helps us figure out:
+
+- Is there a connection between them?
+
+- Is that connection strong or weak?
+
+- Is it likely just random, or is it statistically meaningful?
+
+We’re just doing a simple regression here based on the plot we made earlier.
+
+But regression can get much more detailed, you can include more variables, control for things, and dive deeper.
+
+This is just a very basic intro. There are whole courses dedicated to different types of regression!
+
+Run the linear model:
+
+```{r regre4}
+mobility_v_pop <- lm(upward_mobility_rate_2010 ~ logpop, data = merged)
+
+# let’s look at the results:
+summary(mobility_v_pop)
+
+```
+
+The `lm()` function in R fits a linear regression model.
+
+It helps you understand how a response variable (like upward mobility) changes based on one or more predictors (like population).
+
+`logpop`= population size. 
+
+Understand the output: 
+
+**`Estimate`**:	How much mobility increases when log population increases
+
+**`Std. Error`**:	How uncertain the estimate is
+**`t value`**	Like the t-test again, this is a statistic
+
+**`Pr(>|t|)`**: if it’s small, that means it’s statistically significant
+
+**Multiple R-squared**	How well the model explains the data (0 to 1)
+
+
+Now focus on the coefficients part of the output, especially the line labeled logpop (that’s the population data we log-transformed earlier).
+
+Here’s what we see:
+
+- The coefficient is 1.042
+→ This tells us how much upward mobility changes when population increases.
+
+- The standard error is 0.061
+→ This tells us how precise our estimate is (smaller = better).
+
+- The p-value (shown as Pr(>|t|)) is very small, which is good!
+→ It means the result is statistically significant, or not likely due to random chance.
+
+- There are also stars next to the number—these show that the result is strongly significant.
+
+Because we used a log base 10 transformation (log10), the coefficient tells us this:
+
+For every 10× increase in population size, upward mobility goes up by about 1.05 units.
+
+If we want to instead save the results to a file instead of printing them, we use the sink function.
+
+```{r regre5}
+sink(file = "output/mobility-pop-regression.txt")
+summary(mobility_v_pop)
+sink()
+```
+### Multivarite Regression: Let's add state
+
+
+
+Now we’re going to add another variable to our analysis.
+
+Let’s say we want to compare Arizona with California to see if upward mobility is different between the two.
+
+To do that, we’ll create something called a dummy variable.
+
+A dummy variable is just a simple way to say “yes” or “no” in the data.
+
+In this case:
+
+If a row is from Arizona, the dummy variable will be 1
+
+If it’s from California (or anywhere else), it will be 0
+
+This helps us include categorical information (like the state) in our regression model.
+
+Then we can see if just being in Arizona, for example, is linked to higher or lower mobility compared to California.
+
+```{r multi}
+merged$az <- ifelse(merged$STATE_NAME_2010SVI == "Arizona", 1, 0)
+merged$ca <- ifelse(merged$STATE_NAME_2010SVI == "California", 1, 0)
+```
+
+Add AZ as a predictor and run the new model:
+
+```{r multi1}
+mobility_v_pop_state <- lm(formula = upward_mobility_rate_2010 ~ logpop + az
+                     , data = merged)
+summary(mobility_v_pop_state)
+```
+
+`az`= whether the location is in Arizona. 
+
+
+If `az` has a small p-value, that means state does matter.
+If `az` has a large p-value, state does not make a big difference.
+
+
+Let’s take a look at what the results are showing us now.
+
+First, the relationship between population and mobility is basically the same as before—so adding the new variable didn’t change that.
+
+Now let’s talk about the Arizona dummy variable we added.
+
+The result for Arizona is not statistically significant.
+
+That means we don’t see a clear difference in upward mobility between Arizona and California based on this data.
+
+But that doesn’t mean the state doesn’t matter at all—it just means that, in this case, Arizona isn’t different from California in a way that stands out statistically.
+
+
+Also, keep in mind:
+
+- California is the baseline or “excluded” group in this comparison
+
+- So the model compares other states (like Arizona) to California.
+
+So, let's save it
+
+```{r multi2}
+sink(file = "output/mobility-pop-state-regression.txt")
+summary(mobility_v_pop)
+sink()
+```
+
+---
+
+# Review of Learning Objectives
+
+
+✅ Reminders about reading data from files and output results to filestreamline workflow using R Projects and Git.
+
+
+✅  Run standard statistical tests:
+   - Student’s t
+   - ANOVA
+   - Simple linear regression
+   
+✅  Gain literacy with piping (`%>%`) and tidy tools. 
+
+---
+
+## Student Activities
+
+Follow these tasks using the skills from Lesson 3.
+
+### 1. Variable exploration
+
+Remember?:
+
+```{r replot-clean1}
+boxplot(formula = upward_mobility_rate_2010 ~ STATE_NAME_2010SVI, data = merged_data)
+```
+
+or
+
+
+```{r plot pop2}
+boxplot(formula = M_TOTPOP_2010SVI ~ STATE_NAME_2010SVI, data = merged_data)
+```
+
+Pick a variable that you’re curious about, and make a box plot to explore it.
+
+Now think about it:
+
+1. What does this graph show you?
+2. why did you choose that variable to explore more?
+
+### 2. Anova analysis
+
+You just ran an ANOVA to see if upward mobility in Arizona varies depending on COUNTY_2010SVI (a social vulnerability index by county). Try repeating the analysis, but change something:
+
+- Use a different variable in Arizona.
+
+- Keep the same variable (`COUNTY_2010SVI`) but look at California instead.
+
+
+What did you find?
+
+Did the variable you picked have a statistically significant effect?
+
+### 3. Another regression.
+
+Instead of using the original mobility data, let’s switch it up and use mobility data from 2020.
+You can add more variables into the regression by using the + sign.
+
+Based on today’s learning objectives and everything we explored:
+
+### 4. Reflect and Extend
+
+Where do you feel like you need more...
+
+- Time to practice or explore?
+
+- Energy or support to feel more confident?
+
+- Information or explanation to fully understand?
+
+- What questions do you still have?  
+
+
