@@ -244,5 +244,16 @@ sink()
 
 #student activities
 
-boxplot(formula =  ~ STATE_NAME_2010SVI, data = merged_data)
+boxplot(formula = upward_mobility_means_2010 ~ STATE_NAME_2010SVI, data = merged_data)
 
+#anova
+aov(formula = upward_mobility_rate_2010 ~ COUNTY_2010SVI, data = ca)
+mobility_rate_ca_aov <- aov(formula = upward_mobility_rate_2010 ~ COUNTY_2010SVI, data = ca)
+summary(object = mobility_rate_ca_aov)
+
+#regression
+plot(x = merged_data$upward_mobility_rate_2020, y = merged_data$M_TOTPOP_2010SVI)
+
+#I liked this exercise a bit more than last time, now that i am more familiar with R. I still think we could use more
+#context about functions, variables, data, etc. I still feel that it's hard to recognize what types of code works with
+#what data, and I don't think I could string any code together on my own.
